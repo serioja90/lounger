@@ -1,15 +1,15 @@
 require "lounger/version"
 
 class Lounger
-  def initialize
+  SIGNALS = ["INT", "TERM", "EXIT", "USR1", "QUIT"]
+
+  def initialize(include_signals: [], exclude_signals: [])
     @lock      = Mutex.new
     @condition = ConditionVariable.new
 
-    Signal.trap("INT")  { wakeup! }
-    Signal.trap("TERM") { wakeup! }
-    Signal.trap("EXIT") { wakeup! }
-    Signal.trap("USR1") { wakeup! }
-    Signal.trap("QUIT") { wakeup! }
+    (SIGNALS + include_signals - exclude_signals).each do |signal|
+      Signal.trap(signal) { wakeup! }
+    end
   end
 
   def idle
@@ -23,4 +23,7 @@ class Lounger
   def self.idle
     Lounger.new.idle
   end
+
+  alias_method :wait, :idle
+  alias_method :signal, :wakeup!
 end
