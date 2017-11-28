@@ -7,13 +7,18 @@ class Lounger
     @lock            = Mutex.new
     @condition       = ConditionVariable.new
     @pending_signals = 0
+    @buffer          = []
 
-    (SIGNALS + include_signals - exclude_signals).each do |signal|
-      Signal.trap(signal) { wakeup! }
+    (SIGNALS + include_signals - exclude_signals).each do |s|
+      prev = Signal.trap(s) do
+        @condition.signal
+        prev.call
+      end
     end
   end
 
   def idle(ignore_pending: false)
+    result = nil
     @lock.synchronize do
       @pending_signals = 0 if ignore_pending
 
@@ -23,12 +28,16 @@ class Lounger
         @condition.wait(@lock)
         @pending_signals -= 1
       end
+      result = @buffer.shift
     end
+
+    return result
   end
 
-  def wakeup!
+  def wakeup!(value = nil)
     @lock.synchronize do
       @pending_signals += 1
+      @buffer << value
       @condition.signal
     end
   end
