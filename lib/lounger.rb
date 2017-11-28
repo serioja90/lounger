@@ -13,7 +13,7 @@ class Lounger
     (SIGNALS + include_signals - exclude_signals).each do |s|
       prev = Signal.trap(s) do
         @condition.signal
-        prev.call
+        prev.call unless prev.is_a?(String)
       end
     end
   end
