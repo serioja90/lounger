@@ -1,7 +1,11 @@
-require "lounger/version"
+# frozen_string_literal: true
 
+require 'lounger/version'
+
+# The Lounger class is the main class which will allow to handle traps
+# in simple way.
 class Lounger
-  SIGNALS = ["INT", "TERM", "EXIT", "USR1", "QUIT"]
+  SIGNALS = %w[INT TERM EXIT USR1 QUIT].freeze
 
   def initialize(include_signals: [], exclude_signals: [])
     @lock            = Mutex.new
@@ -11,10 +15,7 @@ class Lounger
     @idle            = false
 
     (SIGNALS + include_signals - exclude_signals).each do |s|
-      prev = Signal.trap(s) do
-        @condition.signal
-        prev.call unless prev.is_a?(String)
-      end
+      Signal.trap(s) { @condition.signal }
     end
   end
 
@@ -24,7 +25,7 @@ class Lounger
       @pending_signals = 0 if ignore_pending
       @idle = true
 
-      if @pending_signals > 0
+      if @pending_signals.positive?
         @pending_signals -= 1
       else
         @condition.wait(@lock)
@@ -35,11 +36,11 @@ class Lounger
       result = @buffer.shift
     end
 
-    return result
+    result
   end
 
   def idle?
-    return @idle
+    @idle
   end
 
   def wakeup!(value = nil)
